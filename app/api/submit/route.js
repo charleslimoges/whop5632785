@@ -3,12 +3,18 @@ import { NextResponse } from "next/server";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  // NOTE: Final allowed headers are echoed dynamically in OPTIONS handler
   "Access-Control-Allow-Headers": "Content-Type",
   "Access-Control-Max-Age": "86400",
 };
 
-export async function OPTIONS() {
-  return new Response(null, { status: 204, headers: corsHeaders });
+export async function OPTIONS(req) {
+  const requested = req.headers?.get?.("access-control-request-headers");
+  const headers = {
+    ...corsHeaders,
+    ...(requested ? { "Access-Control-Allow-Headers": requested } : {}),
+  };
+  return new Response(null, { status: 204, headers });
 }
 
 export async function POST(req) {
