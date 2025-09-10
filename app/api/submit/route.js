@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: corsHeaders });
+}
+
 export async function POST(req) {
   try {
     const gasUrl = process.env.GAS_WEB_APP_URL;
     if (!gasUrl) {
       return new NextResponse(
         JSON.stringify({ error: "Missing GAS_WEB_APP_URL environment variable" }),
-        {
-          status: 500,
-          headers: { "Access-Control-Allow-Origin": "*" },
-        }
+        { status: 500, headers: corsHeaders }
       );
     }
 
@@ -32,10 +40,7 @@ export async function POST(req) {
     if (!email) missing.push("email");
     if (!location) missing.push("location");
     if (!tiktok) missing.push("tiktok");
-    if (
-      (Array.isArray(persona) && persona.length === 0) ||
-      (!Array.isArray(persona) && !persona)
-    )
+    if ((Array.isArray(persona) && persona.length === 0) || (!Array.isArray(persona) && !persona))
       missing.push("persona");
     if (!struggle) missing.push("struggle");
     if (!goals || (Array.isArray(goals) && goals.length === 0)) missing.push("goals");
@@ -44,10 +49,7 @@ export async function POST(req) {
     if (missing.length) {
       return new NextResponse(
         JSON.stringify({ error: `Missing required fields: ${missing.join(", ")}` }),
-        {
-          status: 400,
-          headers: { "Access-Control-Allow-Origin": "*" },
-        }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -75,13 +77,8 @@ export async function POST(req) {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return new NextResponse(
-        JSON.stringify({
-          error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}`,
-        }),
-        {
-          status: 502,
-          headers: { "Access-Control-Allow-Origin": "*" },
-        }
+        JSON.stringify({ error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}` }),
+        { status: 502, headers: corsHeaders }
       );
     }
 
@@ -96,17 +93,13 @@ export async function POST(req) {
 
     return new NextResponse(JSON.stringify({ ok: true, data }), {
       status: 200,
-      headers: {
-        "Access-Control-Allow-Origin": "*", // 👈 allow calls from Whop (or any site)
-      },
+      headers: corsHeaders,
     });
   } catch (e) {
     return new NextResponse(
       JSON.stringify({ error: e?.message || "Unknown error" }),
-      {
-        status: 400,
-        headers: { "Access-Control-Allow-Origin": "*" },
-      }
+      { status: 400, headers: corsHeaders }
     );
   }
 }
+
