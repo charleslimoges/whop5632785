@@ -95,7 +95,9 @@ export default function FormPage() {
         body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(json?.error || "Failed to submit");
+      if (!res.ok || json?.ok !== true) {
+        throw new Error(json?.error || "Submit failed. Please try again.");
+      }
       setStatus("done");
       // Navigate to success page for confirmation
       router.push("/form/success");

@@ -3,33 +3,37 @@ import { NextResponse } from "next/server";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  // NOTE: Final allowed headers are echoed dynamically in OPTIONS handler
+  // NOTE: Final allowed headers may be echoed dynamically per-request
   "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Credentials": "true",
   "Access-Control-Max-Age": "86400",
+  Vary: "Origin",
 };
 
-export async function OPTIONS(req) {
-  const requested = req.headers?.get?.("access-control-request-headers");
-  const headers = {
+function buildCorsHeaders(req) {
+  const origin = req?.headers?.get?.("origin") || "*";
+  const requested = req?.headers?.get?.("access-control-request-headers");
+  return {
     ...corsHeaders,
+    "Access-Control-Allow-Origin": origin !== "null" ? origin : "*",
     ...(requested ? { "Access-Control-Allow-Headers": requested } : {}),
   };
-  return new Response(null, { status: 204, headers });
+}
+
+export async function OPTIONS(req) {
+  return new Response(null, { status: 204, headers: buildCorsHeaders(req) });
 }
 
 export async function POST(req) {
   try {
-    const targetUrl =
-      process.env.MAKE_WEBHOOK_URL ||
-      process.env.WEBHOOK_URL ||
-      process.env.GAS_WEB_APP_URL;
-    if (!targetUrl) {
+    const headers = buildCorsHeaders(req);
+    const gasUrl = process.env.GAS_WEB_APP_URL;
+    if (!gasUrl) {
       return new NextResponse(
         JSON.stringify({
-          error:
-            "Missing webhook URL. Set MAKE_WEBHOOK_URL (preferred), WEBHOOK_URL, or GAS_WEB_APP_URL.",
+          error: "Missing GAS_WEB_APP_URL environment variable.",
         }),
-        { status: 500, headers: corsHeaders }
+        { status: 500, headers }
       );
     }
 
@@ -86,7 +90,7 @@ export async function POST(req) {
     if (missing.length) {
       return new NextResponse(
         JSON.stringify({ error: `Missing required fields: ${missing.join(", ")}` }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers }
       );
     }
 
@@ -105,7 +109,13 @@ export async function POST(req) {
       source: "whop-form",
     };
 
-    const res = await fetch(targetUrl, {
+    try {
+      const targetHost = new URL(gasUrl).host;
+      console.log("/api/submit forwarding to GAS:", targetHost);
+    } catch {}
+    console.log("/api/submit normalized payload keys:", Object.keys(normalized));
+
+    const res = await fetch(gasUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(normalized),
@@ -115,9 +125,9 @@ export async function POST(req) {
       const text = await res.text().catch(() => "");
       return new NextResponse(
         JSON.stringify({
-          error: `Webhook request failed (${res.status}): ${text?.slice(0, 300)}`,
+          error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}`,
         }),
-        { status: 502, headers: corsHeaders }
+        { status: 502, headers: headers }
       );
     }
 
@@ -132,12 +142,12 @@ export async function POST(req) {
 
     return new NextResponse(JSON.stringify({ ok: true, data }), {
       status: 200,
-      headers: corsHeaders,
+      headers,
     });
   } catch (e) {
-    return new NextResponse(
-      JSON.stringify({ error: e?.message || "Unknown error" }),
-      { status: 400, headers: corsHeaders }
-    );
+    return new NextResponse(JSON.stringify({ error: e?.message || "Unknown error" }), {
+      status: 400,
+      headers: corsHeaders,
+    });
   }
 }
