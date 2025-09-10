@@ -4,16 +4,17 @@ export async function POST(req) {
   try {
     const gasUrl = process.env.GAS_WEB_APP_URL;
     if (!gasUrl) {
-      return NextResponse.json(
-        { error: "Missing GAS_WEB_APP_URL environment variable" },
-        { status: 500 }
+      return new NextResponse(
+        JSON.stringify({ error: "Missing GAS_WEB_APP_URL environment variable" }),
+        {
+          status: 500,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        }
       );
     }
 
     const payload = await req.json();
 
-    // Expecting a flat object of answers from the client
-    // { instagram, tiktok, email, location, persona, businessStage, struggle, goals: string[] | string, consent }
     const {
       instagram,
       tiktok,
@@ -26,24 +27,30 @@ export async function POST(req) {
       consent,
     } = payload || {};
 
-    // Basic validation of required fields
     const missing = [];
     if (!instagram) missing.push("instagram");
     if (!email) missing.push("email");
     if (!location) missing.push("location");
     if (!tiktok) missing.push("tiktok");
-    if ((Array.isArray(persona) && persona.length === 0) || (!Array.isArray(persona) && !persona)) missing.push("persona");
+    if (
+      (Array.isArray(persona) && persona.length === 0) ||
+      (!Array.isArray(persona) && !persona)
+    )
+      missing.push("persona");
     if (!struggle) missing.push("struggle");
     if (!goals || (Array.isArray(goals) && goals.length === 0)) missing.push("goals");
     if (consent !== "Yes" && consent !== "No") missing.push("consent");
+
     if (missing.length) {
-      return NextResponse.json(
-        { error: `Missing required fields: ${missing.join(", ")}` },
-        { status: 400 }
+      return new NextResponse(
+        JSON.stringify({ error: `Missing required fields: ${missing.join(", ")}` }),
+        {
+          status: 400,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        }
       );
     }
 
-    // Normalize payload for GAS: match sheet headers and keep it simple
     const normalized = {
       Instagram: String(instagram || "").trim(),
       TikTok: String(tiktok || "").trim(),
@@ -59,7 +66,6 @@ export async function POST(req) {
       source: "whop-form",
     };
 
-    // Forward to the Google Apps Script web app
     const res = await fetch(gasUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -68,13 +74,17 @@ export async function POST(req) {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return NextResponse.json(
-        { error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}` },
-        { status: 502 }
+      return new NextResponse(
+        JSON.stringify({
+          error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}`,
+        }),
+        {
+          status: 502,
+          headers: { "Access-Control-Allow-Origin": "*" },
+        }
       );
     }
 
-    // Attempt to parse response, but accept text as well
     let data;
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
@@ -84,11 +94,19 @@ export async function POST(req) {
       data = { ok: true, message: text };
     }
 
-    return NextResponse.json({ ok: true, data });
+    return new NextResponse(JSON.stringify({ ok: true, data }), {
+      status: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*", // 👈 allow calls from Whop (or any site)
+      },
+    });
   } catch (e) {
-    return NextResponse.json(
-      { error: e?.message || "Unknown error" },
-      { status: 400 }
+    return new NextResponse(
+      JSON.stringify({ error: e?.message || "Unknown error" }),
+      {
+        status: 400,
+        headers: { "Access-Control-Allow-Origin": "*" },
+      }
     );
   }
 }
