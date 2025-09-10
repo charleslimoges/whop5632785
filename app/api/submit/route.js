@@ -21,7 +21,32 @@ export async function POST(req) {
       );
     }
 
-    const payload = await req.json();
+    // Safely parse incoming body regardless of content type
+    let payload = {};
+    try {
+      const contentType = (req.headers?.get?.("content-type") || "").toLowerCase();
+      if (contentType.includes("application/json")) {
+        payload = await req.json();
+      } else if (
+        contentType.includes("application/x-www-form-urlencoded") ||
+        contentType.includes("multipart/form-data")
+      ) {
+        const form = await req.formData();
+        payload = Object.fromEntries(form.entries());
+      } else {
+        // Try to parse text as JSON if possible
+        const text = await req.text();
+        try {
+          payload = text ? JSON.parse(text) : {};
+        } catch {
+          payload = {};
+        }
+      }
+    } catch {
+      payload = {};
+    }
+
+    console.log("/api/submit received payload:", payload);
 
     const {
       instagram,
@@ -102,4 +127,3 @@ export async function POST(req) {
     );
   }
 }
-
