@@ -13,10 +13,16 @@ export async function OPTIONS() {
 
 export async function POST(req) {
   try {
-    const gasUrl = process.env.GAS_WEB_APP_URL;
-    if (!gasUrl) {
+    const targetUrl =
+      process.env.MAKE_WEBHOOK_URL ||
+      process.env.WEBHOOK_URL ||
+      process.env.GAS_WEB_APP_URL;
+    if (!targetUrl) {
       return new NextResponse(
-        JSON.stringify({ error: "Missing GAS_WEB_APP_URL environment variable" }),
+        JSON.stringify({
+          error:
+            "Missing webhook URL. Set MAKE_WEBHOOK_URL (preferred), WEBHOOK_URL, or GAS_WEB_APP_URL.",
+        }),
         { status: 500, headers: corsHeaders }
       );
     }
@@ -93,7 +99,7 @@ export async function POST(req) {
       source: "whop-form",
     };
 
-    const res = await fetch(gasUrl, {
+    const res = await fetch(targetUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(normalized),
@@ -102,7 +108,9 @@ export async function POST(req) {
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return new NextResponse(
-        JSON.stringify({ error: `GAS request failed (${res.status}): ${text?.slice(0, 300)}` }),
+        JSON.stringify({
+          error: `Webhook request failed (${res.status}): ${text?.slice(0, 300)}`,
+        }),
         { status: 502, headers: corsHeaders }
       );
     }
