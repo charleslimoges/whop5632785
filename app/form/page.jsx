@@ -68,6 +68,16 @@ export default function FormPage() {
     setStatus("submitting");
     setErr(undefined);
     try {
+      // Prevent duplicate submissions by email in this browser
+      const emailKey = (data.email || "").trim().toLowerCase();
+      if (emailKey) {
+        const lsKey = `whop-form:submitted:${emailKey}`;
+        if (typeof window !== "undefined" && localStorage.getItem(lsKey)) {
+          setStatus("error");
+          throw new Error("Only one submission per email. You've already submitted.");
+        }
+      }
+
       // Normalize "Other..." text values before sending
       const personaList = Array.isArray(data.persona)
         ? data.persona
@@ -98,6 +108,12 @@ export default function FormPage() {
       if (!res.ok || json?.ok !== true) {
         throw new Error(json?.error || "Submit failed. Please try again.");
       }
+      // Mark as submitted in this browser to prevent duplicates
+      if (emailKey && typeof window !== "undefined") {
+        try {
+          localStorage.setItem(`whop-form:submitted:${emailKey}`, String(Date.now()));
+        } catch {}
+      }
       setStatus("done");
       // Navigate to success page for confirmation
       router.push("/form/success");
@@ -114,6 +130,7 @@ export default function FormPage() {
           <div className="h-2 bg-red-600" />
           <div className="p-5 sm:p-6">
             <h1 className="text-3xl font-extrabold tracking-tight">The Coach's Corner Form</h1>
+            <p className="mt-1 text-white/70 text-xs">(One submission per person/email)</p>
             <p className="mt-2 text-white/80 text-sm">
               Please answer all questions below to continue.
             </p>
