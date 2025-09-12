@@ -273,7 +273,7 @@ export default function FormPage() {
           {/* Goals */}
           <div className="rounded-xl border border-white/10 bg-white/5 p-4 sm:p-5">
             <div className="block text-lg font-semibold mb-2">
-              What do you want to get out of the free Coach's Corner? <span className="text-red-500">*</span>
+              What do you want to get out of the Coach's Corner? <span className="text-red-500">*</span>
             </div>
             <div className="grid grid-cols-1 gap-2">
               {GOAL_OPTIONS.map((opt) => (
