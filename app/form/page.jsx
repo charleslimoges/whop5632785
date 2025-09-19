@@ -32,6 +32,7 @@ export default function FormPage() {
     instagram: "",
     tiktok: "",
     email: "",
+    phone: "",
     location: "",
     persona: [],
     personaOther: "",
@@ -177,6 +178,21 @@ export default function FormPage() {
               placeholder="you@example.com"
               value={data.email}
               onChange={(e) => setData({ ...data, email: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Phone */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4 sm:p-5">
+            <label className="block text-lg font-semibold mb-2">
+              Phone number? <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              className="w-full rounded-md bg-black text-white placeholder-white/40 border border-white/20 p-2 focus:outline-none focus:ring-2 focus:ring-red-600"
+              placeholder="+1 555 123 4567"
+              value={data.phone}
+              onChange={(e) => setData({ ...data, phone: e.target.value })}
               required
             />
           </div>

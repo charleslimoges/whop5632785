@@ -68,6 +68,7 @@ export async function POST(req) {
       instagram,
       tiktok,
       email,
+      phone,
       location,
       persona,
       businessStage,
@@ -79,6 +80,7 @@ export async function POST(req) {
     const missing = [];
     if (!instagram) missing.push("instagram");
     if (!email) missing.push("email");
+    if (!phone) missing.push("phone");
     if (!location) missing.push("location");
     if (!tiktok) missing.push("tiktok");
     if ((Array.isArray(persona) && persona.length === 0) || (!Array.isArray(persona) && !persona))
@@ -98,6 +100,7 @@ export async function POST(req) {
       Instagram: String(instagram || "").trim(),
       TikTok: String(tiktok || "").trim(),
       Email: String(email || "").trim(),
+      Phone: String(phone || "").trim(),
       Location: String(location || "").trim(),
       Persona: Array.isArray(persona)
         ? persona.filter(Boolean).join(", ")
